@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Social Media Caption Generator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: #080810;
+    color: #f0f0f5;
+    font-family: Georgia, serif;
+    padding: 24px 16px 60px;
+    background-image: radial-gradient(ellipse 60% 30% at 50% 0%, rgba(120,80,255,0.08) 0%, transparent 70%);
+  }
+  .inner { max-width: 680px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 32px; }
+  .ai-tag {
+    display: inline-block; font-size: 10px; letter-spacing: 0.2em;
+    color: #a78bfa; border: 1px solid #a78bfa; padding: 3px 10px;
+    border-radius: 2px; margin-bottom: 14px; font-family: monospace; text-transform: uppercase;
+  }
+  h1 { font-size: clamp(24px, 6vw, 44px); font-weight: 900; line-height: 1.05; margin-bottom: 8px; }
+  h1 span { color: #a78bfa; }
+  .subtitle { color: #6b6b85; font-size: 12px; font-family: monospace; letter-spacing: 0.03em; }
+
+  .card { background: #13131e; border: 1px solid #252538; border-radius: 12px; padding: 22px; margin-bottom: 20px; }
+
+  label {
+    display: block; font-size: 10px; letter-spacing: 0.12em;
+    color: #6b6b85; text-transform: uppercase; margin-bottom: 7px; font-family: monospace;
+  }
+  textarea, select, input[type="text"] {
+    width: 100%; background: #0d0d18; border: 1px solid #252538;
+    border-radius: 8px; color: #f0f0f5; font-family: Georgia, serif;
+    font-size: 14px; padding: 11px 13px; outline: none; margin-bottom: 14px;
+  }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+  select { font-size: 13px; appearance: none; }
+  input[type="text"] { font-size: 13px; }
+
+  .row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .row > div { flex: 1; min-width: 140px; }
+  .row label { margin-bottom: 7px; }
+  .row select, .row input { margin-bottom: 0; }
+
+  .btn {
+    width: 100%; background: #a78bfa; color: #080810; border: none;
+    border-radius: 8px; font-family: Georgia, serif; font-size: 15px;
+    font-weight: 700; letter-spacing: 0.05em; padding: 13px 0;
+    cursor: pointer; text-transform: uppercase; transition: opacity 0.2s;
+  }
+  .btn:disabled { background: #2d2040; color: #6b5a8a; cursor: not-allowed; }
+
+  .error {
+    display: none; background: rgba(255,80,80,0.08); border: 1px solid rgba(255,80,80,0.3);
+    border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #ff6b6b;
+    margin-bottom: 16px; font-family: monospace;
+  }
+  .error.show { display: block; }
+
+  .loading { display: none; text-align: center; padding: 36px 0; }
+  .loading.show { display: block; }
+  .spinner {
+    width: 32px; height: 32px; border: 2px solid #252538; border-top-color: #a78bfa;
+    border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading p { color: #6b6b85; font-size: 12px; font-family: monospace; }
+
+  #results { display: none; }
+  #results.show { display: block; }
+
+  .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .results-header p { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #6b6b85; font-family: monospace; }
+  .copy-all-btn {
+    background: transparent; border: 1px solid #252538; color: #6b6b85;
+    border-radius: 6px; font-family: monospace; font-size: 11px;
+    padding: 5px 14px; cursor: pointer; letter-spacing: 0.06em;
+  }
+  .copy-all-btn.copied { color: #a78bfa; border-color: #a78bfa; }
+
+  .platform-card {
+    background: #13131e; border: 1px solid #252538;
+    border-radius: 0 12px 12px 0; padding: 18px; margin-bottom: 14px;
+  }
+  .platform-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .platform-label { display: flex; align-items: center; gap: 8px; }
+  .platform-icon { font-size: 18px; }
+  .platform-name { font-family: monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .copy-btn {
+    background: transparent; border: 1px solid #252538; color: #6b6b85;
+    border-radius: 6px; font-family: monospace; font-size: 11px;
+    padding: 4px 12px; cursor: pointer;
+  }
+  .platform-caption { font-size: 13px; line-height: 1.75; color: #d0d0e0; white-space: pre-wrap; margin-bottom: 10px; }
+  .platform-hashtags { font-size: 12px; color: #6b6b85; font-family: monospace; line-height: 1.6; }
+  .char-count { font-size: 10px; color: #3a3a55; font-family: monospace; margin-top: 8px; text-align: right; }
+
+  .tip-box {
+    background: #13131e; border: 1px solid #252538; border-radius: 10px;
+    padding: 16px; margin-top: 8px; font-size: 11px; color: #6b6b85;
+    font-family: monospace; line-height: 1.8; text-align: center;
+  }
+  .tip-box strong { color: #a78bfa; }
+
+  @media (max-width: 480px) { .row { flex-direction: column; } }
+</style>
+</head>
+<body>
+<div class="inner">
+  <header>
+    <div class="ai-tag">AI-Powered</div>
+    <h1>Social Media<br><span>Caption Generator</span></h1>
+    <p class="subtitle">One idea → 5 platform-optimized posts</p>
+  </header>
+
+  <div class="card">
+    <label>What do you want to post about?</label>
+    <textarea id="idea" placeholder="e.g. Launching my new devotional book for teen girl athletes..."></textarea>
+    <div class="row">
+      <div>
+        <label>Tone</label>
+        <select id="tone">
+          <option>Inspirational</option>
+          <option>Casual &amp; Fun</option>
+          <option>Professional</option>
+          <option>Bold &amp; Direct</option>
+          <option>Storytelling</option>
+          <option>Promotional</option>
+        </select>
+      </div>
+      <div>
+        <label>Your Niche (optional)</label>
+        <input type="text" id="niche" placeholder="e.g. Christian books, teen girls" />
+      </div>
+    </div>
+    <button class="btn" id="generateBtn" onclick="generate()">Generate Posts →</button>
+  </div>
+
+  <div class="error" id="errorBox"></div>
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Writing your captions...</p>
+  </div>
+
+  <div id="results">
+    <div class="results-header">
+      <p>Your Posts</p>
+      <button class="copy-all-btn" id="copyAllBtn" onclick="copyAll()">Copy All</button>
+    </div>
+    <div id="platformCards"></div>
+    <div class="tip-box">
+      💡 Copy each post → paste into <strong>Buffer</strong> or <strong>Metricool</strong> to schedule automatically
+    </div>
+  </div>
+</div>
+
+<script>
+const PLATFORMS = [
+  { id: "instagram", label: "Instagram", icon: "📸", color: "#E1306C" },
+  { id: "facebook",  label: "Facebook",  icon: "📘", color: "#1877F2" },
+  { id: "twitter",   label: "Twitter / X", icon: "🐦", color: "#1DA1F2" },
+  { id: "linkedin",  label: "LinkedIn",  icon: "💼", color: "#0A66C2" },
+  { id: "tiktok",    label: "TikTok",    icon: "🎵", color: "#ff0050" },
+];
+
+let lastResults = null;
+
+async function generate() {
+  const idea = document.getElementById('idea').value.trim();
+  const tone = document.getElementById('tone').value;
+  const niche = document.getElementById('niche').value.trim();
+
+  if (!idea) { showError("Please describe what you want to post about."); return; }
+  hideError(); setLoading(true);
+  document.getElementById('results').classList.remove('show');
+  lastResults = null;
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idea, tone, niche })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'API error');
+    lastResults = data;
+    renderResults(data);
+  } catch (e) {
+    showError("Error: " + e.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function renderResults(results) {
+  const container = document.getElementById('platformCards');
+  container.innerHTML = '';
+  PLATFORMS.forEach(p => {
+    const r = results[p.id];
+    if (!r) return;
+    const full = r.caption + (r.hashtags ? "\n\n" + r.hashtags : "");
+    const card = document.createElement('div');
+    card.className = 'platform-card';
+    card.style.borderLeft = `3px solid ${p.color}`;
+    card.innerHTML = `
+      <div class="platform-header">
+        <div class="platform-label">
+          <span class="platform-icon">${p.icon}</span>
+          <span class="platform-name" style="color:${p.color}">${p.label}</span>
+        </div>
+        <button class="copy-btn" id="copybtn-${p.id}" onclick="copyPlatform('${p.id}')">${"Copy"}</button>
+      </div>
+      <p class="platform-caption">${escHtml(r.caption)}</p>
+      ${r.hashtags ? `<p class="platform-hashtags">${escHtml(r.hashtags)}</p>` : ''}
+      <p class="char-count">${full.length} chars</p>
+    `;
+    container.appendChild(card);
+  });
+  document.getElementById('results').classList.add('show');
+}
+
+function copyPlatform(id) {
+  const r = lastResults?.[id]; if (!r) return;
+  const full = r.caption + (r.hashtags ? "\n\n" + r.hashtags : "");
+  const p = PLATFORMS.find(x => x.id === id);
+  navigator.clipboard.writeText(full).then(() => {
+    const btn = document.getElementById(`copybtn-${id}`);
+    btn.textContent = "✓ Copied"; btn.style.color = p.color; btn.style.borderColor = p.color;
+    setTimeout(() => { btn.textContent = "Copy"; btn.style.color = "#6b6b85"; btn.style.borderColor = "#252538"; }, 2000);
+  });
+}
+
+function copyAll() {
+  if (!lastResults) return;
+  const text = PLATFORMS.map(p => {
+    const r = lastResults[p.id];
+    return `--- ${p.label} ---\n${r.caption}${r.hashtags ? "\n" + r.hashtags : ""}`;
+  }).join("\n\n");
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyAllBtn');
+    btn.textContent = "✓ Copied All"; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = "Copy All"; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function setLoading(on) {
+  document.getElementById('loading').classList.toggle('show', on);
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = on; btn.textContent = on ? "Generating..." : "Generate Posts →";
+}
+function showError(msg) { const b = document.getElementById('errorBox'); b.textContent = msg; b.classList.add('show'); }
+function hideError() { document.getElementById('errorBox').classList.remove('show'); }
+function escHtml(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+</script>
+</body>
+</html>
